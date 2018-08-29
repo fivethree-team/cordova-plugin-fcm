@@ -36,14 +36,15 @@ var PLATFORM = {
     },
     ANDROID: {
         dest: [
-            ANDROID_DIR + '/google-services.json'
+            ANDROID_DIR + '/google-services.json',
+            ANDROID_DIR + '/app/google-services.json'
         ],
         src: [
             'google-services.json',
             ANDROID_DIR + '/assets/www/google-services.json',
             'www/google-services.json'
         ],
-        stringsXml: ANDROID_DIR + '/res/values/strings.xml'
+        stringsXml: ANDROID_DIR + '/app/src/main/res/values/strings.xml'
     }
 };
 
@@ -53,9 +54,11 @@ if (directoryExists(IOS_DIR)) {
 }
 if (directoryExists(ANDROID_DIR)) {
     copyKey(PLATFORM.ANDROID, updateStringsXml)
+    copyPushIcon(PLATFORM.ANDROID)
 }
 
 function updateStringsXml(contents) {
+    console.log('update strings xml', PLATFORM.ANDROID.stringsXml);
     var json = JSON.parse(contents);
     var strings = fs.readFileSync(PLATFORM.ANDROID.stringsXml).toString();
 
@@ -85,7 +88,9 @@ function copyKey(platform, callback) {
                 var contents = fs.readFileSync(file).toString();
 
                 try {
+                    console.log(platform.dest);
                     platform.dest.forEach(function (destinationPath) {
+                        console.log('destination for google service json', destinationPath);
                         var folder = destinationPath.substring(0, destinationPath.lastIndexOf('/'));
                         fs.ensureDirSync(folder);
                         fs.writeFileSync(destinationPath, contents);
@@ -127,4 +132,15 @@ function directoryExists(path) {
     } catch (e) {
         return false;
     }
+}
+
+function copyPushIcon(platform) {
+    const manifest = fs.readFileSync(ANDROID_DIR + "/app/src/main/AndroidManifest.xml").toString();
+    console.log('manifest',manifest);
+    const application = manifest.match(/<application .*>/);
+    console.log('application',application);
+    const path = '<meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@mipmap/icon"/>'
+    console.log('add to manifest',path)
+    const updatedManifest = manifest.replace(application, application + "\n" + path);
+    fs.writeFileSync(ANDROID_DIR + "/app/src/main/AndroidManifest.xml",updatedManifest);
 }
